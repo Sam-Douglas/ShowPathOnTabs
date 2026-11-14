@@ -8,6 +8,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.VisualStudio.Threading;
 using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
 
 namespace ShowPathOnTabs.Services;
@@ -16,13 +17,25 @@ namespace ShowPathOnTabs.Services;
 /// Updates tab captions to show the path where there is ambiguity
 /// </summary>
 /// <param name="serviceProvider">Provides the running document table and UI shell (normally the package).</param>
-internal sealed class TabCaptionService(IAsyncServiceProvider serviceProvider) : IVsRunningDocTableEvents, IDisposable
+internal sealed class TabCaptionService(IAsyncServiceProvider serviceProvider) : IVsRunningDocTableEvents2, IDisposable
 {
+    // Attributes whose change means a tab may now show a different file: path changed, file reloaded.
+    private const uint RenameAttributes = (uint)(__VSRDTATTRIB.RDTA_MkDocument | __VSRDTATTRIB.RDTA_DocDataReloaded);
+
     private readonly IAsyncServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     private IVsRunningDocumentTable? _runningDocTable;
     private IVsUIShell? _uiShell;
     private uint _rdtCookie;
     private bool _disposed;
+
+    // Refreshes deferred until Visual Studio has finished handling a rename.
+    private readonly JoinableTaskCollection _deferredRefreshes = ThreadHelper.JoinableTaskContext.CreateCollection();
+    private bool _refreshQueued;
+
+    /// <summary>
+    /// Completes once any refresh deferred by a rename has run. Exposed for tests.
+    /// </summary>
+    internal Task PendingRefresh => _deferredRefreshes.JoinTillEmptyAsync();
 
     public async Task InitializeAsync()
     {
@@ -42,7 +55,59 @@ internal sealed class TabCaptionService(IAsyncServiceProvider serviceProvider) :
 
     public int OnAfterSave(uint docCookie) => VSConstants.S_OK;
 
-    public int OnAfterAttributeChange(uint docCookie, uint grfAttribs) => VSConstants.S_OK;
+    /// <summary>
+    /// Fires when a document's attributes change, such as when a file is renamed or saved to a new path.
+    /// </summary>
+    public int OnAfterAttributeChange(uint docCookie, uint grfAttribs)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if ((grfAttribs & RenameAttributes) != 0)
+            ScheduleRefresh();
+
+        return VSConstants.S_OK;
+    }
+
+    /// <summary>
+    /// Extended form of <see cref="OnAfterAttributeChange"/> that carries the old and new paths.
+    /// Visual Studio reports renames through this event, so both are handled.
+    /// </summary>
+    public int OnAfterAttributeChangeEx(uint docCookie, uint grfAttribs,
+        IVsHierarchy pHierOld, uint itemidOld, string pszMkDocumentOld,
+        IVsHierarchy pHierNew, uint itemidNew, string pszMkDocumentNew)
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        bool pathChanged = !string.Equals(pszMkDocumentOld, pszMkDocumentNew, StringComparison.OrdinalIgnoreCase);
+        if (pathChanged || (grfAttribs & RenameAttributes) != 0)
+            ScheduleRefresh();
+
+        return VSConstants.S_OK;
+    }
+
+    /// <summary>
+    /// Refreshes captions once Visual Studio has finished handling the current event.
+    /// During a rename, the document table changes before the window frames get their new path,
+    /// and Visual Studio resets the tab caption itself afterwards, so refreshing straight away
+    /// would read the old path and then be overwritten.
+    /// Several events in the same rename are combined into one refresh.
+    /// </summary>
+    private void ScheduleRefresh()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (_disposed || _refreshQueued) return;
+        _refreshQueued = true;
+
+        var factory = ThreadHelper.JoinableTaskContext.CreateFactory(_deferredRefreshes);
+        factory.RunAsync(async () =>
+        {
+            await factory.SwitchToMainThreadAsync(alwaysYield: true);
+            _refreshQueued = false;
+            if (!_disposed)
+                UpdateTabCaptions();
+        }).FileAndForget("ShowPathOnTabs/RefreshCaptionsAfterRename");
+    }
 
     /// <summary>
     /// Tab is about to be fully closed
