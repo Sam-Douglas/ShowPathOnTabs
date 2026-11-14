@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio;
+﻿using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell.Interop;
 using Moq;
 using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
@@ -72,6 +72,18 @@ internal sealed class FakeVsEnvironment : IDisposable
 
     public void Close(FakeWindowFrame frame) => OpenFrames.Remove(frame);
 
+    /// <summary>Moves the tab's file on disk and points the tab at the new path, as a rename in Visual Studio does.</summary>
+    /// <returns>The old and new full paths.</returns>
+    public (string OldPath, string NewPath) Rename(FakeWindowFrame frame, string newRelativePath)
+    {
+        string oldPath = (string)frame.Moniker!;
+        string newPath = Path.Combine(_root, newRelativePath);
+        Directory.CreateDirectory(Path.GetDirectoryName(newPath)!);
+        File.Move(oldPath, newPath);
+        frame.SetMoniker(newPath);
+        return (oldPath, newPath);
+    }
+
     public void Dispose()
     {
         try { Directory.Delete(_root, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
@@ -85,13 +97,22 @@ internal sealed class FakeWindowFrame
 
     public FakeWindowFrame(object? moniker)
     {
-        object? value = moniker;
-        _mock
-            .Setup(f => f.GetProperty((int)__VSFPROPID.VSFPROPID_pszMkDocument, out value))
-            .Returns(VSConstants.S_OK);
+        SetMoniker(moniker);
         _mock
             .Setup(f => f.SetProperty((int)__VSFPROPID.VSFPROPID_OwnerCaption, It.IsAny<object>()))
             .Callback((int _, object caption) => { Caption = (string)caption; CaptionSetCount++; })
+            .Returns(VSConstants.S_OK);
+    }
+
+    /// <summary>The document path (moniker) the frame reports.</summary>
+    public object? Moniker { get; private set; }
+
+    public void SetMoniker(object? moniker)
+    {
+        Moniker = moniker;
+        object? value = moniker;
+        _mock
+            .Setup(f => f.GetProperty((int)__VSFPROPID.VSFPROPID_pszMkDocument, out value))
             .Returns(VSConstants.S_OK);
     }
 

@@ -133,6 +133,124 @@ public sealed class TabCaptionServiceTests : IDisposable
         Assert.Equal("Program.cs", first.Caption);
     }
 
+    private const uint RdtaMkDocument = (uint)__VSRDTATTRIB.RDTA_MkDocument;
+
+    private static int RaiseRenameEx(TabCaptionService service, (string OldPath, string NewPath) rename) =>
+        service.OnAfterAttributeChangeEx(docCookie: 2, RdtaMkDocument, null!, 0, rename.OldPath, null!, 0, rename.NewPath);
+
+    [Fact]
+    public async Task RenamingDuplicate_UpdatesCaptionsOfBothTabs()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var first = _vs.OpenFile(@"src\A\Program.cs");
+        var second = _vs.OpenFile(@"src\B\Program.cs");
+        using var service = await CreateInitializedServiceAsync();
+
+        var rename = _vs.Rename(second, @"src\B\Worker.cs");
+        RaiseRenameEx(service, rename);
+        await service.PendingRefresh;
+
+        Assert.Equal("Program.cs", first.Caption);
+        Assert.Equal("Worker.cs", second.Caption);
+    }
+
+    [Fact]
+    public async Task RenamingIntoDuplicate_ShowsParentFolders()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var first = _vs.OpenFile(@"src\A\Program.cs");
+        var second = _vs.OpenFile(@"src\B\Worker.cs");
+        using var service = await CreateInitializedServiceAsync();
+
+        var rename = _vs.Rename(second, @"src\B\Program.cs");
+        RaiseRenameEx(service, rename);
+        await service.PendingRefresh;
+
+        Assert.Equal(@"A\Program.cs", first.Caption);
+        Assert.Equal(@"B\Program.cs", second.Caption);
+    }
+
+    [Fact]
+    public async Task RenameEvent_RaisedBeforeFrameHasNewPath_StillUsesNewPath()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var frame = _vs.OpenFile(@"src\Program.cs");
+        using var service = await CreateInitializedServiceAsync();
+        string oldPath = (string)frame.Moniker!;
+        string newPath = Path.Combine(Path.GetDirectoryName(oldPath)!, "Worker.cs");
+
+        // Visual Studio updates the document table (and raises the event) before the frame's own path.
+        service.OnAfterAttributeChangeEx(2, RdtaMkDocument, null!, 0, oldPath, null!, 0, newPath);
+        File.Move(oldPath, newPath);
+        frame.SetMoniker(newPath);
+        await service.PendingRefresh;
+
+        Assert.Equal("Worker.cs", frame.Caption);
+    }
+
+    [Fact]
+    public async Task BasicAttributeChange_WithRename_RefreshesCaptions()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var frame = _vs.OpenFile(@"src\Program.cs");
+        using var service = await CreateInitializedServiceAsync();
+
+        _vs.Rename(frame, @"src\Worker.cs");
+        service.OnAfterAttributeChange(docCookie: 2, RdtaMkDocument);
+        await service.PendingRefresh;
+
+        Assert.Equal("Worker.cs", frame.Caption);
+    }
+
+    [Fact]
+    public async Task BothRenameEvents_AreCombinedIntoOneRefresh()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var frame = _vs.OpenFile(@"src\Program.cs");
+        using var service = await CreateInitializedServiceAsync();
+        int setCountAfterInit = frame.CaptionSetCount;
+
+        var rename = _vs.Rename(frame, @"src\Worker.cs");
+        service.OnAfterAttributeChange(docCookie: 2, RdtaMkDocument);
+        RaiseRenameEx(service, rename);
+        await service.PendingRefresh;
+
+        Assert.Equal(setCountAfterInit + 1, frame.CaptionSetCount);
+        Assert.Equal("Worker.cs", frame.Caption);
+    }
+
+    [Fact]
+    public async Task UnrelatedAttributeChange_DoesNotRefresh()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var frame = _vs.OpenFile(@"src\Program.cs");
+        using var service = await CreateInitializedServiceAsync();
+        int setCountAfterInit = frame.CaptionSetCount;
+        string path = (string)frame.Moniker!;
+
+        service.OnAfterAttributeChange(docCookie: 1, (uint)__VSRDTATTRIB.RDTA_DocDataIsDirty);
+        service.OnAfterAttributeChangeEx(1, (uint)__VSRDTATTRIB.RDTA_DocDataIsDirty, null!, 0, path, null!, 0, path);
+        await service.PendingRefresh;
+
+        Assert.Equal(setCountAfterInit, frame.CaptionSetCount);
+    }
+
+    [Fact]
+    public async Task RenameAfterDispose_DoesNotRefresh()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var frame = _vs.OpenFile(@"src\Program.cs");
+        var service = await CreateInitializedServiceAsync();
+        int setCountAfterInit = frame.CaptionSetCount;
+
+        var rename = _vs.Rename(frame, @"src\Worker.cs");
+        RaiseRenameEx(service, rename);
+        service.Dispose();
+        await service.PendingRefresh;
+
+        Assert.Equal(setCountAfterInit, frame.CaptionSetCount);
+    }
+
     [Fact]
     public async Task LastDocumentUnlock_RefreshesCaptions()
     {
