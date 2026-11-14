@@ -8,16 +8,17 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
+using IAsyncServiceProvider = Microsoft.VisualStudio.Shell.IAsyncServiceProvider;
 
 namespace ShowPathOnTabs.Services;
 
 /// <summary>
 /// Updates tab captions to show the path where there is ambiguity
 /// </summary>
-/// <param name="package"></param>
-internal sealed class TabCaptionService(AsyncPackage package) : IVsRunningDocTableEvents, IDisposable
+/// <param name="serviceProvider">Provides the running document table and UI shell (normally the package).</param>
+internal sealed class TabCaptionService(IAsyncServiceProvider serviceProvider) : IVsRunningDocTableEvents, IDisposable
 {
-    private readonly AsyncPackage _package = package ?? throw new ArgumentNullException(nameof(package));
+    private readonly IAsyncServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
     private IVsRunningDocumentTable? _runningDocTable;
     private IVsUIShell? _uiShell;
     private uint _rdtCookie;
@@ -27,8 +28,8 @@ internal sealed class TabCaptionService(AsyncPackage package) : IVsRunningDocTab
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
 
-        _runningDocTable = await _package.GetServiceAsync(typeof(SVsRunningDocumentTable)) as IVsRunningDocumentTable;
-        _uiShell = await _package.GetServiceAsync(typeof(SVsUIShell)) as IVsUIShell;
+        _runningDocTable = await _serviceProvider.GetServiceAsync(typeof(SVsRunningDocumentTable)) as IVsRunningDocumentTable;
+        _uiShell = await _serviceProvider.GetServiceAsync(typeof(SVsUIShell)) as IVsUIShell;
 
         if (_runningDocTable == null) return;
 
