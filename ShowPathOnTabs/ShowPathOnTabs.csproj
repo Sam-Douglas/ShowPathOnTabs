@@ -17,6 +17,17 @@
 		<Content Include="..\LICENSE.txt" Link="Resources\LICENSE.txt">
 			<IncludeInVSIX>true</IncludeInVSIX>
 		</Content>
+		<!-- Declares the extension's settings for Visual Studio's Settings UI (see ProvideSettingsManifest). -->
+		<Content Include="Options\registration.json">
+			<IncludeInVSIX>true</IncludeInVSIX>
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+	<ItemGroup>
+		<!-- The Extensions > Show Path On Tabs menu. -->
+		<VSCTCompile Include="ShowPathOnTabs.vsct">
+			<ResourceName>Menus.ctmenu</ResourceName>
+		</VSCTCompile>
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectCapability Include="CreateVsixContainer" />
@@ -24,6 +35,16 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
 		<PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.5.40034" />
+	</ItemGroup>
+	<ItemGroup>
+		<!-- DialogPage (the Tools > Options page) is a Windows Forms component. -->
+		<!-- Used to measure caption text against the tab width. -->
+		<Reference Include="PresentationCore" />
+		<Reference Include="PresentationFramework" />
+		<Reference Include="WindowsBase" />
+		<Reference Include="System.Xaml" />
+		<Reference Include="System.Design" />
+		<Reference Include="System.Windows.Forms" />
 	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\ShowPathOnTabs.Core\ShowPathOnTabs.Core.csproj" />

@@ -1,0 +1,70 @@
+{
+  "categories": {
+    "showPathOnTabs": {
+      "title": "Show Path On Tabs",
+      "legacyOptionPageId": "5f0b9a3e-6c1d-4b57-9a40-2f6f6a0f5d11"
+    }
+  },
+  "properties": {
+    "showPathOnTabs.collapseMiddle": {
+      "type": "boolean",
+      "title": "Collapse middle folders",
+      "description": "Show only the folder that tells the tabs apart: Admin\\Index.razor instead of Admin\\Areas\\Pages\\Index.razor.",
+      "default": true
+    },
+    "showPathOnTabs.folderAbbreviation": {
+      "type": "string",
+      "title": "Abbreviate folders",
+      "description": "Clip the words in folder names (EntityFrameworkCore to EntFraCor). The file name is never changed, and a folder is never shortened until it reads like another tab's.",
+      "default": "off",
+      "enum": [
+        "off",
+        "toFit",
+        "always"
+      ],
+      "enumItemLabels": [
+        "Off",
+        "To fit: only when the caption is too long for the tab, and only as far as needed",
+        "Always: as short as they can go"
+      ]
+    },
+    "showPathOnTabs.layout": {
+      "type": "string",
+      "title": "Layout",
+      "description": "Where the path sits relative to the file name.",
+      "default": "pathThenFileName",
+      "enum": [
+        "pathThenFileName",
+        "fileNameThenPath"
+      ],
+      "enumItemLabels": [
+        "Path, then file name (Admin\\Pages\\Index.razor)",
+        "File name, then path (Index.razor (Admin\\Pages))"
+      ]
+    },
+    "showPathOnTabs.tabWidening": {
+      "type": "string",
+      "title": "Widen tabs",
+      "description": "Raise Visual Studio's maximum tab width so the widest caption fits. Switching to Off sets it back to Visual Studio's default (215).",
+      "default": "toFit",
+      "enum": [
+        "off",
+        "toFit",
+        "toLimit"
+      ],
+      "enumItemLabels": [
+        "Off",
+        "To fit: as wide as the widest caption needs",
+        "To limit: as wide as the widest caption needs, up to the tab width limit"
+      ]
+    },
+    "showPathOnTabs.tabWidthLimit": {
+      "type": "integer",
+      "title": "Tab width limit",
+      "description": "The widest tabs are made when Widen tabs is set to To limit.",
+      "default": 300,
+      "minimum": 215,
+      "maximum": 999
+    }
+  }
+}
