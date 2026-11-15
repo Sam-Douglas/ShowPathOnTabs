@@ -5,7 +5,11 @@
     "internalName": "ShowPathOnTabs",
     "tags": [ "tabs", "tab caption", "disambiguate" ]
   },
-  "assetFiles": [],
+  "assetFiles": [
+    { "pathOnDisk": "Images/ExtensionDisabled.png", "targetPath": "Images/ExtensionDisabled.png" },
+    { "pathOnDisk": "Images/ExtensionEnabledDefault.png", "targetPath": "Images/ExtensionEnabledDefault.png" },
+    { "pathOnDisk": "Images/FileNameFirst.png", "targetPath": "Images/FileNameFirst.png" }
+  ],
   "overview": "README.md",
   "publisher": "samjsddevelopment",
   "repo": "https://github.com/Sam-Douglas/ShowPathOnTabs-VisualStudioExtension"
