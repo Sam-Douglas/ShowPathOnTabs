@@ -2,6 +2,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Utilities.UnifiedSettings;
 using ShowPathOnTabs.Commands;
+using ShowPathOnTabs.Core.Captioning;
 using ShowPathOnTabs.Options;
 using ShowPathOnTabs.Services;
 using System;
@@ -56,7 +57,7 @@ namespace ShowPathOnTabs
                 this,
                 () => captionSettings.Current,
                 budgetProvider.Create,
-                (options, captions) => tabWidener.Apply(options.WidenTabs, options.TabWidthLimit, captions));
+                (options, captions) => tabWidener.Apply(options.Enabled ? options.WidenTabs : TabWidening.Off, options.TabWidthLimit, captions));
             await _tabCaptionService.InitializeAsync();
 
             captionSettings.Changed += OnCaptionSettingsChanged;

@@ -182,12 +182,15 @@ internal sealed class TabCaptionService(
 
             var allOpenPaths = openDocs.Select(d => d.FilePath).ToList();
             var options = _captionOptions();
-            var budget = options.AbbreviateFolders == FolderAbbreviation.ToFit ? _captionBudget() : null;
+            var budget = options.Enabled && options.AbbreviateFolders == FolderAbbreviation.ToFit ? _captionBudget() : null;
 
             var captions = new List<string>(openDocs.Count);
             foreach (var (filePath, frame) in openDocs)
             {
-                string caption = TabCaptionBuilder.Build(filePath, allOpenPaths, options, budget);
+                // Switched off, tabs get the plain file name: Visual Studio's own caption.
+                string caption = options.Enabled
+                    ? TabCaptionBuilder.Build(filePath, allOpenPaths, options, budget)
+                    : Path.GetFileName(filePath);
                 frame.SetProperty((int)__VSFPROPID.VSFPROPID_OwnerCaption, caption);
                 captions.Add(caption);
             }

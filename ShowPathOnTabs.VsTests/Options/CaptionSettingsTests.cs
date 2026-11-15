@@ -22,6 +22,8 @@ public sealed class CaptionSettingsTests
 
         public int TabWidthLimit { get; set; }
 
+        public bool Enabled { get; set; }
+
         public int SaveCount { get; private set; }
 
         public event EventHandler? Applied;
@@ -53,6 +55,7 @@ public sealed class CaptionSettingsTests
         StoreValue(CaptionSettings.LayoutMoniker, SettingRetrievalOutcome.Success, "pathThenFileName");
         StoreValue(CaptionSettings.TabWideningMoniker, SettingRetrievalOutcome.Success, "toFit");
         StoreValue(CaptionSettings.TabWidthLimitMoniker, SettingRetrievalOutcome.Success, 300);
+        StoreValue(CaptionSettings.EnabledMoniker, SettingRetrievalOutcome.Success, true);
 
         var pending = new SettingChangeResult(SettingChangeOutcome.PendingCommit, true, "");
         _writer.Setup(w => w.EnqueueChange(It.IsAny<string>(), It.IsAny<string>())).Returns(pending);
@@ -79,6 +82,7 @@ public sealed class CaptionSettingsTests
         StoreValue(CaptionSettings.LayoutMoniker, SettingRetrievalOutcome.Success, "fileNameThenPath");
         StoreValue(CaptionSettings.TabWideningMoniker, SettingRetrievalOutcome.Success, "toLimit");
         StoreValue(CaptionSettings.TabWidthLimitMoniker, SettingRetrievalOutcome.Success, 640);
+        StoreValue(CaptionSettings.EnabledMoniker, SettingRetrievalOutcome.Success, false);
 
         using var settings = CreateSettings();
 
@@ -87,6 +91,7 @@ public sealed class CaptionSettingsTests
         Assert.Equal(CaptionLayout.FileNameThenPath, settings.Current.Layout);
         Assert.Equal(TabWidening.ToLimit, settings.Current.WidenTabs);
         Assert.Equal(640, settings.Current.TabWidthLimit);
+        Assert.False(settings.Current.Enabled);
     }
 
     [Fact]
@@ -97,6 +102,7 @@ public sealed class CaptionSettingsTests
         _legacyPage.Layout = CaptionLayout.FileNameThenPath;
         _legacyPage.TabWidening = TabWidening.ToLimit;
         _legacyPage.TabWidthLimit = 320;
+        _legacyPage.Enabled = true;
 
         using var settings = CreateSettings(withUnifiedSettings: false);
 
@@ -105,6 +111,7 @@ public sealed class CaptionSettingsTests
         Assert.Equal(CaptionLayout.FileNameThenPath, settings.Current.Layout);
         Assert.Equal(TabWidening.ToLimit, settings.Current.WidenTabs);
         Assert.Equal(320, settings.Current.TabWidthLimit);
+        Assert.True(settings.Current.Enabled);
     }
 
     [Fact]
@@ -136,13 +143,14 @@ public sealed class CaptionSettingsTests
         int changes = 0;
         settings.Changed += (_, _) => changes++;
 
-        settings.Update(new CaptionOptions(collapseMiddle: false, FolderAbbreviation.ToFit, CaptionLayout.FileNameThenPath, TabWidening.ToLimit, tabWidthLimit: 640));
+        settings.Update(new CaptionOptions(collapseMiddle: false, FolderAbbreviation.ToFit, CaptionLayout.FileNameThenPath, TabWidening.ToLimit, tabWidthLimit: 640, enabled: false));
 
         _writer.Verify(w => w.EnqueueChange(CaptionSettings.CollapseMiddleMoniker, false), Times.Once);
         _writer.Verify(w => w.EnqueueChange(CaptionSettings.FolderAbbreviationMoniker, "toFit"), Times.Once);
         _writer.Verify(w => w.EnqueueChange(CaptionSettings.LayoutMoniker, "fileNameThenPath"), Times.Once);
         _writer.Verify(w => w.EnqueueChange(CaptionSettings.TabWideningMoniker, "toLimit"), Times.Once);
         _writer.Verify(w => w.EnqueueChange(CaptionSettings.TabWidthLimitMoniker, 640), Times.Once);
+        _writer.Verify(w => w.EnqueueChange(CaptionSettings.EnabledMoniker, false), Times.Once);
         _writer.Verify(w => w.RequestCommit(It.IsAny<string>()), Times.Once);
         Assert.Equal(1, changes);
     }
@@ -156,10 +164,11 @@ public sealed class CaptionSettingsTests
             .Returns(new SettingChangeResult(SettingChangeOutcome.NotSupportedInClassicMode, false, ""));
         using var settings = CreateSettings();
 
-        settings.Update(new CaptionOptions(collapseMiddle: true, FolderAbbreviation.Always, CaptionLayout.FileNameThenPath, TabWidening.ToLimit, tabWidthLimit: 320));
+        settings.Update(new CaptionOptions(collapseMiddle: true, FolderAbbreviation.Always, CaptionLayout.FileNameThenPath, TabWidening.ToLimit, tabWidthLimit: 320, enabled: true));
 
         Assert.Equal(TabWidening.ToLimit, _legacyPage.TabWidening);
         Assert.Equal(320, _legacyPage.TabWidthLimit);
+        Assert.True(_legacyPage.Enabled);
         Assert.True(_legacyPage.CollapseMiddle);
         Assert.Equal(FolderAbbreviation.Always, _legacyPage.FolderAbbreviation);
         Assert.Equal(CaptionLayout.FileNameThenPath, _legacyPage.Layout);
@@ -216,5 +225,6 @@ public sealed class CaptionSettingsTests
         Assert.Contains($"\"{CaptionSettings.LayoutMoniker}\"", registration);
         Assert.Contains($"\"{CaptionSettings.TabWideningMoniker}\"", registration);
         Assert.Contains($"\"{CaptionSettings.TabWidthLimitMoniker}\"", registration);
+        Assert.Contains($"\"{CaptionSettings.EnabledMoniker}\"", registration);
     }
 }

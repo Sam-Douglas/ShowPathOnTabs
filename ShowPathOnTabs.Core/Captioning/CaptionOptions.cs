@@ -58,14 +58,22 @@ namespace ShowPathOnTabs.Core.Captioning
             FolderAbbreviation abbreviateFolders = FolderAbbreviation.Off,
             CaptionLayout layout = CaptionLayout.PathThenFileName,
             TabWidening widenTabs = TabWidening.ToFit,
-            int tabWidthLimit = DefaultTabWidthLimit)
+            int tabWidthLimit = DefaultTabWidthLimit,
+            bool enabled = true)
         {
             CollapseMiddle = collapseMiddle;
             AbbreviateFolders = abbreviateFolders;
             Layout = layout;
             WidenTabs = widenTabs;
             TabWidthLimit = tabWidthLimit;
+            Enabled = enabled;
         }
+
+        /// <summary>
+        /// Whether the extension changes anything. When off, tabs show Visual Studio's own caption
+        /// and the tab width is left to Visual Studio.
+        /// </summary>
+        public bool Enabled { get; }
 
         /// <summary>
         /// Show only the folder that tells the tabs apart, e.g. <c>Admin\Index.razor</c>
@@ -91,14 +99,16 @@ namespace ShowPathOnTabs.Core.Captioning
             FolderAbbreviation? abbreviateFolders = null,
             CaptionLayout? layout = null,
             TabWidening? widenTabs = null,
-            int? tabWidthLimit = null)
+            int? tabWidthLimit = null,
+            bool? enabled = null)
         {
             return new CaptionOptions(
                 collapseMiddle ?? CollapseMiddle,
                 abbreviateFolders ?? AbbreviateFolders,
                 layout ?? Layout,
                 widenTabs ?? WidenTabs,
-                tabWidthLimit ?? TabWidthLimit);
+                tabWidthLimit ?? TabWidthLimit,
+                enabled ?? Enabled);
         }
     }
 }

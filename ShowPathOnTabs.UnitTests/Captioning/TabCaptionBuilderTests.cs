@@ -58,6 +58,7 @@ public class TabCaptionBuilderTests
         Assert.Equal(FolderAbbreviation.Off, options.AbbreviateFolders);
         Assert.Equal(CaptionLayout.PathThenFileName, options.Layout);
         Assert.Equal(CaptionOptions.DefaultTabWidthLimit, options.TabWidthLimit);
+        Assert.True(options.Enabled);
     }
 
     [Fact]
@@ -71,6 +72,8 @@ public class TabCaptionBuilderTests
         Assert.False(changed.CollapseMiddle);
         Assert.Equal(FolderAbbreviation.Always, changed.AbbreviateFolders);
         Assert.Equal(CaptionOptions.DefaultTabWidthLimit, changed.TabWidthLimit);
+        Assert.True(changed.Enabled);
+        Assert.False(changed.With(enabled: false).Enabled);
         Assert.Equal(CaptionLayout.FileNameThenPath, changed.Layout);
     }
 

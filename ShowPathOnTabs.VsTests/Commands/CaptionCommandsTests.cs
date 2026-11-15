@@ -73,6 +73,94 @@ public sealed class CaptionCommandsTests
     }
 
     [Fact]
+    public async Task ToggleEnabled_SwitchesOffAndOnAndKeepsTheOtherSettings()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var commands = CreateCommands();
+        commands.SetTabWidening(TabWidening.ToLimit);
+
+        commands.ToggleEnabled();
+        Assert.False(commands.IsEnabled);
+        Assert.Equal(TabWidening.ToLimit, _settings.Current.WidenTabs);
+
+        commands.ToggleEnabled();
+        Assert.True(commands.IsEnabled);
+    }
+
+    [Fact]
+    public async Task ResetToDefaults_RestoresEverySettingAndSwitchesOn()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var commands = CreateCommands();
+        commands.SetFolderAbbreviation(FolderAbbreviation.Always);
+        commands.ToggleFileNameFirst();
+        commands.ToggleEnabled();
+
+        commands.ResetToDefaults();
+
+        var current = _settings.Current;
+        var defaults = CaptionOptions.Default;
+        Assert.True(current.Enabled);
+        Assert.Equal(defaults.CollapseMiddle, current.CollapseMiddle);
+        Assert.Equal(defaults.AbbreviateFolders, current.AbbreviateFolders);
+        Assert.Equal(defaults.Layout, current.Layout);
+        Assert.Equal(defaults.WidenTabs, current.WidenTabs);
+        Assert.Equal(defaults.TabWidthLimit, current.TabWidthLimit);
+    }
+
+    [Fact]
+    public async Task Register_AddsEnabledAndResetCommands()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var commandService = new MenuCommandService(new ServiceContainer());
+        CreateCommands().Register(commandService);
+        _settings.Update(_settings.Current.With(collapseMiddle: true));
+        var enabled = (OleMenuCommand)commandService.FindCommand(new CommandID(CaptionCommands.CommandSet, CaptionCommands.EnabledCommandId))!;
+        var reset = commandService.FindCommand(new CommandID(CaptionCommands.CommandSet, CaptionCommands.ResetToDefaultsCommandId))!;
+
+        enabled.Invoke();
+        _ = enabled.OleStatus;
+        Assert.False(enabled.Checked);
+        Assert.False(_settings.Current.Enabled);
+
+        reset.Invoke();
+        _ = enabled.OleStatus;
+        Assert.True(enabled.Checked);
+        Assert.True(_settings.Current.Enabled);
+    }
+
+    [Fact]
+    public async Task WhileDisabled_CaptionCommandsAreGreyedOutButEnabledIsNot()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        _settings.Update(_settings.Current.With(enabled: false));
+        var commandService = new MenuCommandService(new ServiceContainer());
+        CreateCommands().Register(commandService);
+        OleMenuCommand Find(int id) => (OleMenuCommand)commandService.FindCommand(new CommandID(CaptionCommands.CommandSet, id))!;
+        int[] captionCommands = [
+            CaptionCommands.CollapseMiddleCommandId, CaptionCommands.FileNameFirstCommandId,
+            CaptionCommands.AbbreviateToFitCommandId, CaptionCommands.WidenToLimitCommandId];
+
+        var enabled = Find(CaptionCommands.EnabledCommandId);
+        _ = enabled.OleStatus;
+        Assert.True(enabled.Enabled);
+        foreach (int id in captionCommands)
+        {
+            var command = Find(id);
+            _ = command.OleStatus;
+            Assert.False(command.Enabled);
+        }
+
+        enabled.Invoke();
+        foreach (int id in captionCommands)
+        {
+            var command = Find(id);
+            _ = command.OleStatus;
+            Assert.True(command.Enabled);
+        }
+    }
+
+    [Fact]
     public async Task Toggles_AreIndependentAndKeepTheOtherSettings()
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();

@@ -6,6 +6,12 @@
     }
   },
   "properties": {
+    "showPathOnTabs.enabled": {
+      "type": "boolean",
+      "title": "Enabled",
+      "description": "When off, tabs show Visual Studio's own captions and the tab width is set back to Visual Studio's default (215).",
+      "default": true
+    },
     "showPathOnTabs.collapseMiddle": {
       "type": "boolean",
       "title": "Collapse middle folders",

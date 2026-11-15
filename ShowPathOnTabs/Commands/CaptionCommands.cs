@@ -7,9 +7,10 @@ using System.ComponentModel.Design;
 namespace ShowPathOnTabs.Commands;
 
 /// <summary>
-/// The Extensions > Show Path On Tabs menu: two tick-able settings, an Abbreviate Folders and a Widen
-/// Tabs submenu with one ticked choice each, and a link to the settings page. The ids match
-/// <c>ShowPathOnTabs.vsct</c>.
+/// The Extensions > Show Path On Tabs menu: an Enabled tick, two tick-able settings, an Abbreviate
+/// Folders and a Widen Tabs submenu with one ticked choice each, Reset to Defaults and a link to the
+/// settings page. While the extension is switched off, the caption settings are greyed out. The ids
+/// match <c>ShowPathOnTabs.vsct</c>.
 /// </summary>
 internal sealed class CaptionCommands(ICaptionSettings settings, Action openSettings)
 {
@@ -18,6 +19,8 @@ internal sealed class CaptionCommands(ICaptionSettings settings, Action openSett
     public const int CollapseMiddleCommandId = 0x0100;
     public const int FileNameFirstCommandId = 0x0101;
     public const int OpenSettingsCommandId = 0x0102;
+    public const int EnabledCommandId = 0x0103;
+    public const int ResetToDefaultsCommandId = 0x0104;
 
     public const int AbbreviateOffCommandId = 0x0110;
     public const int AbbreviateToFitCommandId = 0x0111;
@@ -30,6 +33,8 @@ internal sealed class CaptionCommands(ICaptionSettings settings, Action openSett
     private readonly ICaptionSettings _settings = settings ?? throw new ArgumentNullException(nameof(settings));
     private readonly Action _openSettings = openSettings ?? throw new ArgumentNullException(nameof(openSettings));
 
+    public bool IsEnabled => _settings.Current.Enabled;
+
     public bool IsCollapseMiddleOn => _settings.Current.CollapseMiddle;
 
     public bool IsFileNameFirstOn => _settings.Current.Layout == CaptionLayout.FileNameThenPath;
@@ -38,6 +43,7 @@ internal sealed class CaptionCommands(ICaptionSettings settings, Action openSett
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
+        AddCommand(commandService, EnabledCommandId, ToggleEnabled, () => IsEnabled, alwaysAvailable: true);
         AddCommand(commandService, CollapseMiddleCommandId, ToggleCollapseMiddle, () => IsCollapseMiddleOn);
         AddCommand(commandService, FileNameFirstCommandId, ToggleFileNameFirst, () => IsFileNameFirstOn);
 
@@ -50,8 +56,25 @@ internal sealed class CaptionCommands(ICaptionSettings settings, Action openSett
         AddWideningChoice(commandService, WidenToLimitCommandId, TabWidening.ToLimit);
 
         commandService.AddCommand(new MenuCommand(
+            (_, _) => ResetToDefaults(),
+            new CommandID(CommandSet, ResetToDefaultsCommandId)));
+
+        commandService.AddCommand(new MenuCommand(
             (_, _) => _openSettings(),
             new CommandID(CommandSet, OpenSettingsCommandId)));
+    }
+
+    public void ToggleEnabled()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        _settings.Update(_settings.Current.With(enabled: !IsEnabled));
+    }
+
+    /// <summary>Puts every setting back to its default, which also switches the extension on.</summary>
+    public void ResetToDefaults()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+        _settings.Update(CaptionOptions.Default);
     }
 
     public void ToggleCollapseMiddle()
@@ -100,12 +123,16 @@ internal sealed class CaptionCommands(ICaptionSettings settings, Action openSett
         }, () => _settings.Current.WidenTabs == value);
     }
 
-    private static void AddCommand(IMenuCommandService commandService, int commandId, Action invoke, Func<bool> isChecked)
+    private void AddCommand(IMenuCommandService commandService, int commandId, Action invoke, Func<bool> isChecked, bool alwaysAvailable = false)
     {
         var command = new OleMenuCommand((_, _) => invoke(), new CommandID(CommandSet, commandId));
 
         // Runs each time the menu opens, so the tick follows changes made on the settings page.
-        command.BeforeQueryStatus += (_, _) => command.Checked = isChecked();
+        command.BeforeQueryStatus += (_, _) =>
+        {
+            command.Checked = isChecked();
+            command.Enabled = alwaysAvailable || IsEnabled;
+        };
 
         commandService.AddCommand(command);
     }
