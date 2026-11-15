@@ -1,0 +1,36 @@
+{
+  "categories": {
+    "showPathOnTabs": {
+      "title": "Show Path On Tabs",
+      "legacyOptionPageId": "5f0b9a3e-6c1d-4b57-9a40-2f6f6a0f5d11"
+    }
+  },
+  "properties": {
+    "showPathOnTabs.collapseMiddle": {
+      "type": "boolean",
+      "title": "Collapse middle folders",
+      "description": "Show only the folder that tells the tabs apart: Admin\\Index.razor instead of Admin\\Areas\\Pages\\Index.razor.",
+      "default": false
+    },
+    "showPathOnTabs.abbreviateFolders": {
+      "type": "boolean",
+      "title": "Abbreviate folders to fit",
+      "description": "When a caption is too long for the tab, clip the words in its folder names (EntityFrameworkCore to EntFraCor) only as far as needed to make it fit. The file name is never changed.",
+      "default": false
+    },
+    "showPathOnTabs.layout": {
+      "type": "string",
+      "title": "Layout",
+      "description": "Where the path sits relative to the file name.",
+      "default": "pathThenFileName",
+      "enum": [
+        "pathThenFileName",
+        "fileNameThenPath"
+      ],
+      "enumItemLabels": [
+        "Path, then file name (Admin\\Pages\\Index.razor)",
+        "File name, then path (Index.razor (Admin\\Pages))"
+      ]
+    }
+  }
+}

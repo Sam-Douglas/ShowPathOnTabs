@@ -4,6 +4,7 @@ using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using Microsoft.VisualStudio.Threading;
 using Moq;
+using ShowPathOnTabs.Core.Captioning;
 using ShowPathOnTabs.Services;
 using ShowPathOnTabs.VsTests.Fakes;
 
@@ -276,6 +277,96 @@ public sealed class TabCaptionServiceTests : IDisposable
 
         Assert.Equal(@"Web\Pages\Index.razor", first.Caption);
         Assert.Equal(@"Admin\Pages\Index.razor", second.Caption);
+    }
+
+    [Fact]
+    public async Task CaptionOptions_AreUsedWhenBuildingCaptions()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var first = _vs.OpenFile(@"src\Web\Pages\Index.razor");
+        var second = _vs.OpenFile(@"src\Admin\Pages\Index.razor");
+        var options = new CaptionOptions(collapseMiddle: true, layout: CaptionLayout.FileNameThenPath);
+
+        using var service = new TabCaptionService(_vs.ServiceProvider.Object, () => options);
+        await service.InitializeAsync();
+
+        Assert.Equal(@"Index.razor (Web)", first.Caption);
+        Assert.Equal(@"Index.razor (Admin)", second.Caption);
+    }
+
+    [Fact]
+    public async Task RefreshCaptions_PicksUpChangedOptions()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var first = _vs.OpenFile(@"src\Web\Pages\Index.razor");
+        _vs.OpenFile(@"src\Admin\Pages\Index.razor");
+        var options = CaptionOptions.Default;
+        using var service = new TabCaptionService(_vs.ServiceProvider.Object, () => options);
+        await service.InitializeAsync();
+        Assert.Equal(@"Web\Pages\Index.razor", first.Caption);
+
+        options = new CaptionOptions(collapseMiddle: true);
+        service.RefreshCaptions();
+
+        Assert.Equal(@"Web\Index.razor", first.Caption);
+    }
+
+    [Fact]
+    public async Task AbbreviateFolders_ClipsFolderWordsToTheBudget()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var first = _vs.OpenFile(@"src\Web\Pages\Index.razor");
+        var second = _vs.OpenFile(@"src\Administration\Pages\Index.razor");
+        var options = new CaptionOptions(collapseMiddle: true, abbreviateFolders: true);
+        var budget = new CaptionBudget(maxWidth: 17, measure: caption => caption.Length);
+
+        using var service = new TabCaptionService(_vs.ServiceProvider.Object, () => options, () => budget);
+        await service.InitializeAsync();
+
+        Assert.Equal(@"Web\Index.razor", first.Caption);
+        Assert.Equal(@"Admin\Index.razor", second.Caption);
+    }
+
+    [Fact]
+    public async Task AbbreviateFolders_WithoutBudget_LeavesFoldersWhole()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        _vs.OpenFile(@"src\Web\Pages\Index.razor");
+        var second = _vs.OpenFile(@"src\Administration\Pages\Index.razor");
+        var options = new CaptionOptions(abbreviateFolders: true);
+
+        using var service = new TabCaptionService(_vs.ServiceProvider.Object, () => options, () => null);
+        await service.InitializeAsync();
+
+        Assert.Equal(@"Administration\Pages\Index.razor", second.Caption);
+    }
+
+    [Fact]
+    public async Task WithoutAbbreviateFolders_DoesNotAskForABudget()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        _vs.OpenFile(@"src\Web\Pages\Index.razor");
+        _vs.OpenFile(@"src\Admin\Pages\Index.razor");
+        int budgetRequests = 0;
+
+        using var service = new TabCaptionService(_vs.ServiceProvider.Object, () => CaptionOptions.Default, () => { budgetRequests++; return null; });
+        await service.InitializeAsync();
+
+        Assert.Equal(0, budgetRequests);
+    }
+
+    [Fact]
+    public async Task RefreshCaptions_AfterDispose_DoesNothing()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var frame = _vs.OpenFile(@"src\Program.cs");
+        var service = await CreateInitializedServiceAsync();
+        int setCountAfterInit = frame.CaptionSetCount;
+
+        service.Dispose();
+        service.RefreshCaptions();
+
+        Assert.Equal(setCountAfterInit, frame.CaptionSetCount);
     }
 
     [Fact]

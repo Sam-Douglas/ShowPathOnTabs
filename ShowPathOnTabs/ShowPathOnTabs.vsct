@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CommandTable xmlns="http://schemas.microsoft.com/VisualStudio/2005-10-18/CommandTable" xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <Extern href="stdidcmd.h" />
+  <Extern href="vsshlids.h" />
+
+  <Commands package="guidShowPathOnTabsPackage">
+
+    <!-- Extensions > Show Path On Tabs -->
+    <Menus>
+      <Menu guid="guidShowPathOnTabsCmdSet" id="ExtensionsSubMenu" priority="0x0100" type="Menu">
+        <Parent guid="guidSHLMainMenu" id="IDG_VS_MM_TOOLSADDINS" />
+        <Strings>
+          <ButtonText>Show Path On Tabs</ButtonText>
+        </Strings>
+      </Menu>
+    </Menus>
+
+    <Groups>
+      <Group guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" priority="0x0100">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="ExtensionsSubMenu" />
+      </Group>
+      <Group guid="guidShowPathOnTabsCmdSet" id="SettingsGroup" priority="0x0200">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="ExtensionsSubMenu" />
+      </Group>
+    </Groups>
+
+    <Buttons>
+      <!-- Independent settings: each one is ticked or not. -->
+      <Button guid="guidShowPathOnTabsCmdSet" id="CollapseMiddleCommand" priority="0x0200" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" />
+        <Strings>
+          <ButtonText>Collapse Middle Folders</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidShowPathOnTabsCmdSet" id="AbbreviateFoldersCommand" priority="0x0300" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" />
+        <Strings>
+          <ButtonText>Abbreviate Folders to Fit</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidShowPathOnTabsCmdSet" id="FileNameFirstCommand" priority="0x0400" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" />
+        <Strings>
+          <ButtonText>File Name First</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidShowPathOnTabsCmdSet" id="OpenSettingsCommand" priority="0x0100" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="SettingsGroup" />
+        <Strings>
+          <ButtonText>Settings...</ButtonText>
+        </Strings>
+      </Button>
+    </Buttons>
+  </Commands>
+
+  <Symbols>
+    <GuidSymbol name="guidShowPathOnTabsPackage" value="{0075df24-a377-4274-a304-a8501ad061e8}" />
+
+    <GuidSymbol name="guidShowPathOnTabsCmdSet" value="{3b1c7d0e-9f5a-4c58-8e2b-6a4d2f7c9e10}">
+      <IDSymbol name="ExtensionsSubMenu" value="0x1000" />
+      <IDSymbol name="CaptionGroup" value="0x1100" />
+      <IDSymbol name="SettingsGroup" value="0x1200" />
+      <IDSymbol name="CollapseMiddleCommand" value="0x0100" />
+      <IDSymbol name="FileNameFirstCommand" value="0x0101" />
+      <IDSymbol name="OpenSettingsCommand" value="0x0102" />
+      <IDSymbol name="AbbreviateFoldersCommand" value="0x0104" />
+    </GuidSymbol>
+  </Symbols>
+</CommandTable>

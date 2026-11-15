@@ -1,4 +1,4 @@
-﻿using Microsoft.VisualStudio;
+using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
 using Microsoft.VisualStudio.Shell.Interop;
 using ShowPathOnTabs.Core.Captioning;
@@ -17,12 +17,19 @@ namespace ShowPathOnTabs.Services;
 /// Updates tab captions to show the path where there is ambiguity
 /// </summary>
 /// <param name="serviceProvider">Provides the running document table and UI shell (normally the package).</param>
-internal sealed class TabCaptionService(IAsyncServiceProvider serviceProvider) : IVsRunningDocTableEvents2, IDisposable
+/// <param name="captionOptions">Returns the current caption settings. Read on every refresh so changes apply straight away.</param>
+/// <param name="captionBudget">Returns the room available on a tab, for folder names that are abbreviated to fit. Null when it cannot be measured.</param>
+internal sealed class TabCaptionService(
+    IAsyncServiceProvider serviceProvider,
+    Func<CaptionOptions>? captionOptions = null,
+    Func<CaptionBudget?>? captionBudget = null) : IVsRunningDocTableEvents2, IDisposable
 {
     // Attributes whose change means a tab may now show a different file: path changed, file reloaded.
     private const uint RenameAttributes = (uint)(__VSRDTATTRIB.RDTA_MkDocument | __VSRDTATTRIB.RDTA_DocDataReloaded);
 
     private readonly IAsyncServiceProvider _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+    private readonly Func<CaptionOptions> _captionOptions = captionOptions ?? (() => CaptionOptions.Default);
+    private readonly Func<CaptionBudget?> _captionBudget = captionBudget ?? (() => null);
     private IVsRunningDocumentTable? _runningDocTable;
     private IVsUIShell? _uiShell;
     private uint _rdtCookie;
@@ -144,6 +151,17 @@ internal sealed class TabCaptionService(IAsyncServiceProvider serviceProvider) :
         return VSConstants.S_OK;
     }
 
+    /// <summary>
+    /// Rebuilds the caption of every open tab, for example after the settings change.
+    /// </summary>
+    public void RefreshCaptions()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
+        if (!_disposed)
+            UpdateTabCaptions();
+    }
+
     private void UpdateTabCaptions()
     {
         ThreadHelper.ThrowIfNotOnUIThread();
@@ -156,10 +174,12 @@ internal sealed class TabCaptionService(IAsyncServiceProvider serviceProvider) :
             if (openDocs.Count == 0) return;
 
             var allOpenPaths = openDocs.Select(d => d.FilePath).ToList();
+            var options = _captionOptions();
+            var budget = options.AbbreviateFolders ? _captionBudget() : null;
 
             foreach (var (filePath, frame) in openDocs)
             {
-                string caption = TabCaptionBuilder.Build(filePath, allOpenPaths);
+                string caption = TabCaptionBuilder.Build(filePath, allOpenPaths, options, budget);
                 frame.SetProperty((int)__VSFPROPID.VSFPROPID_OwnerCaption, caption);
             }
         }
