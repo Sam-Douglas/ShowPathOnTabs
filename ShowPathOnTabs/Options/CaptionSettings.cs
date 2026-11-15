@@ -35,6 +35,8 @@ internal interface ILegacyCaptionStore
 
     int TabWidthLimit { get; set; }
 
+    bool Enabled { get; set; }
+
     /// <summary>Raised after the user confirms the classic Options dialog.</summary>
     event EventHandler? Applied;
 
@@ -53,6 +55,7 @@ internal sealed class CaptionSettings : ICaptionSettings, IDisposable
     public const string LayoutMoniker = "showPathOnTabs.layout";
     public const string TabWideningMoniker = "showPathOnTabs.tabWidening";
     public const string TabWidthLimitMoniker = "showPathOnTabs.tabWidthLimit";
+    public const string EnabledMoniker = "showPathOnTabs.enabled";
 
     private const string WriterName = "ShowPathOnTabs";
 
@@ -79,7 +82,7 @@ internal sealed class CaptionSettings : ICaptionSettings, IDisposable
 
         try
         {
-            string[] monikers = [CollapseMiddleMoniker, FolderAbbreviationMoniker, LayoutMoniker, TabWideningMoniker, TabWidthLimitMoniker, .. relatedMonikers];
+            string[] monikers = [CollapseMiddleMoniker, FolderAbbreviationMoniker, LayoutMoniker, TabWideningMoniker, TabWidthLimitMoniker, EnabledMoniker, .. relatedMonikers];
             _subscription = _settingsManager?.GetReader().SubscribeToChanges(OnUnifiedSettingsChanged, monikers);
         }
         catch (Exception ex)
@@ -103,6 +106,7 @@ internal sealed class CaptionSettings : ICaptionSettings, IDisposable
             _legacyPage.Layout = options.Layout;
             _legacyPage.TabWidening = options.WidenTabs;
             _legacyPage.TabWidthLimit = options.TabWidthLimit;
+            _legacyPage.Enabled = options.Enabled;
             _legacyPage.Save();
         }
 
@@ -126,7 +130,8 @@ internal sealed class CaptionSettings : ICaptionSettings, IDisposable
             ReadEnum(reader, FolderAbbreviationMoniker, _legacyPage.FolderAbbreviation),
             ReadEnum(reader, LayoutMoniker, _legacyPage.Layout),
             ReadEnum(reader, TabWideningMoniker, _legacyPage.TabWidening),
-            ReadValue(reader, TabWidthLimitMoniker, _legacyPage.TabWidthLimit));
+            ReadValue(reader, TabWidthLimitMoniker, _legacyPage.TabWidthLimit),
+            ReadBool(reader, EnabledMoniker, _legacyPage.Enabled));
     }
 
     private static bool ReadBool(ISettingsReader? reader, string moniker, bool fallback) =>
@@ -185,7 +190,8 @@ internal sealed class CaptionSettings : ICaptionSettings, IDisposable
                 && IsQueued(writer.EnqueueChange(FolderAbbreviationMoniker, ToSettingValue(options.AbbreviateFolders)))
                 && IsQueued(writer.EnqueueChange(LayoutMoniker, ToSettingValue(options.Layout)))
                 && IsQueued(writer.EnqueueChange(TabWideningMoniker, ToSettingValue(options.WidenTabs)))
-                && IsQueued(writer.EnqueueChange(TabWidthLimitMoniker, options.TabWidthLimit));
+                && IsQueued(writer.EnqueueChange(TabWidthLimitMoniker, options.TabWidthLimit))
+                && IsQueued(writer.EnqueueChange(EnabledMoniker, options.Enabled));
             if (!queued) return false;
 
             var commit = writer.RequestCommit("Show Path On Tabs caption settings");

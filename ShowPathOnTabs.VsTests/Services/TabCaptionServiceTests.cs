@@ -373,6 +373,43 @@ public sealed class TabCaptionServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Disabled_ShowsPlainFileNamesWithoutAskingForABudget()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var first = _vs.OpenFile(@"src\Web\Pages\Index.razor");
+        var second = _vs.OpenFile(@"src\Admin\Pages\Index.razor");
+        var options = new CaptionOptions(abbreviateFolders: FolderAbbreviation.ToFit, enabled: false);
+        int budgetRequests = 0;
+
+        using var service = new TabCaptionService(_vs.ServiceProvider.Object, () => options, () => { budgetRequests++; return null; });
+        await service.InitializeAsync();
+
+        Assert.Equal("Index.razor", first.Caption);
+        Assert.Equal("Index.razor", second.Caption);
+        Assert.Equal(0, budgetRequests);
+    }
+
+    [Fact]
+    public async Task SwitchingOffAndOn_RemovesAndRestoresThePaths()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var first = _vs.OpenFile(@"src\Web\Pages\Index.razor");
+        _vs.OpenFile(@"src\Admin\Pages\Index.razor");
+        var options = CaptionOptions.Default;
+        using var service = new TabCaptionService(_vs.ServiceProvider.Object, () => options);
+        await service.InitializeAsync();
+        Assert.Equal(@"Web\Index.razor", first.Caption);
+
+        options = options.With(enabled: false);
+        service.RefreshCaptions();
+        Assert.Equal("Index.razor", first.Caption);
+
+        options = options.With(enabled: true);
+        service.RefreshCaptions();
+        Assert.Equal(@"Web\Index.razor", first.Caption);
+    }
+
+    [Fact]
     public async Task CaptionsApplied_ReceivesTheOptionsAndEveryCaption()
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();

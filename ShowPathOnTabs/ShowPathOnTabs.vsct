@@ -29,6 +29,9 @@
     </Menus>
 
     <Groups>
+      <Group guid="guidShowPathOnTabsCmdSet" id="EnabledGroup" priority="0x0050">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="ExtensionsSubMenu" />
+      </Group>
       <Group guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" priority="0x0100">
         <Parent guid="guidShowPathOnTabsCmdSet" id="ExtensionsSubMenu" />
       </Group>
@@ -44,6 +47,13 @@
     </Groups>
 
     <Buttons>
+      <Button guid="guidShowPathOnTabsCmdSet" id="EnabledCommand" priority="0x0100" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="EnabledGroup" />
+        <Strings>
+          <ButtonText>Enabled</ButtonText>
+        </Strings>
+      </Button>
+
       <!-- Independent settings: each one is ticked or not. -->
       <Button guid="guidShowPathOnTabsCmdSet" id="CollapseMiddleCommand" priority="0x0200" type="Button">
         <Parent guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" />
@@ -96,6 +106,12 @@
         </Strings>
       </Button>
 
+      <Button guid="guidShowPathOnTabsCmdSet" id="ResetToDefaultsCommand" priority="0x0050" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="SettingsGroup" />
+        <Strings>
+          <ButtonText>Reset to Defaults</ButtonText>
+        </Strings>
+      </Button>
       <Button guid="guidShowPathOnTabsCmdSet" id="OpenSettingsCommand" priority="0x0100" type="Button">
         <Parent guid="guidShowPathOnTabsCmdSet" id="SettingsGroup" />
         <Strings>
@@ -112,6 +128,7 @@
       <IDSymbol name="ExtensionsSubMenu" value="0x1000" />
       <IDSymbol name="AbbreviateSubMenu" value="0x1001" />
       <IDSymbol name="WidenSubMenu" value="0x1002" />
+      <IDSymbol name="EnabledGroup" value="0x1050" />
       <IDSymbol name="CaptionGroup" value="0x1100" />
       <IDSymbol name="SettingsGroup" value="0x1200" />
       <IDSymbol name="AbbreviateGroup" value="0x1300" />
@@ -119,6 +136,8 @@
       <IDSymbol name="CollapseMiddleCommand" value="0x0100" />
       <IDSymbol name="FileNameFirstCommand" value="0x0101" />
       <IDSymbol name="OpenSettingsCommand" value="0x0102" />
+      <IDSymbol name="EnabledCommand" value="0x0103" />
+      <IDSymbol name="ResetToDefaultsCommand" value="0x0104" />
       <IDSymbol name="AbbreviateOffCommand" value="0x0110" />
       <IDSymbol name="AbbreviateToFitCommand" value="0x0111" />
       <IDSymbol name="AbbreviateAlwaysCommand" value="0x0112" />

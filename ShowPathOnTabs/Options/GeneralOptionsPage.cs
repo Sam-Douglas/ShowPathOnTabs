@@ -21,6 +21,12 @@ public class GeneralOptionsPage : DialogPage, ILegacyCaptionStore
     public event EventHandler? Applied;
 
     [Category("Tab caption")]
+    [DisplayName("Enabled")]
+    [Description("When off, tabs show Visual Studio's own captions and the tab width is set back to Visual Studio's default (215).")]
+    [DefaultValue(true)]
+    public bool Enabled { get; set; } = true;
+
+    [Category("Tab caption")]
     [DisplayName("Collapse middle folders")]
     [Description("Show only the folder that tells the tabs apart, e.g. Admin\\Index.razor instead of Admin\\Areas\\Pages\\Index.razor.")]
     [DefaultValue(true)]
