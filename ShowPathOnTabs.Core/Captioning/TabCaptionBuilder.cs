@@ -32,8 +32,8 @@ namespace ShowPathOnTabs.Core.Captioning
         /// <param name="openTabPaths">Paths of every open tab, including <paramref name="tabPath"/>.</param>
         /// <param name="options">How the caption is laid out. Defaults to <see cref="CaptionOptions.Default"/>.</param>
         /// <param name="budget">
-        /// The room available on a tab, used by <see cref="CaptionOptions.AbbreviateFolders"/>.
-        /// Without it folder names are not abbreviated.
+        /// The room available on a tab, used when <see cref="CaptionOptions.AbbreviateFolders"/> is
+        /// <see cref="FolderAbbreviation.ToFit"/>. Without it folder names are not abbreviated to fit.
         /// </param>
         public static string Build(
             string tabPath,
@@ -50,14 +50,18 @@ namespace ShowPathOnTabs.Core.Captioning
 
             var folders = FoldersFor(tabPath, openTabPaths, options.CollapseMiddle);
 
-            if (options.AbbreviateFolders && budget != null)
+            bool abbreviate = options.AbbreviateFolders == FolderAbbreviation.Always
+                || (options.AbbreviateFolders == FolderAbbreviation.ToFit && budget != null);
+            if (abbreviate)
             {
                 // The sibling tabs' folders, so abbreviating ours never makes it match one of them.
                 var siblingFolders = SiblingsOf(tabPath, openTabPaths)
                     .Select(path => FoldersFor(path, openTabPaths, options.CollapseMiddle))
                     .ToList();
 
-                folders = AbbreviateToFit(folders, fileName, siblingFolders, options.Layout, budget);
+                // With no budget nothing ever fits, so the folders are shortened as far as they can go.
+                var fitTo = options.AbbreviateFolders == FolderAbbreviation.ToFit ? budget : null;
+                folders = AbbreviateToFit(folders, fileName, siblingFolders, options.Layout, fitTo);
             }
 
             return Format(folders, fileName, options.Layout);
@@ -141,7 +145,8 @@ namespace ShowPathOnTabs.Core.Captioning
         /// <summary>
         /// Clips the words in the folder names, longest first, until the caption fits the budget.
         /// Stops early rather than let the folders read the same as a sibling's. When nothing fits,
-        /// returns the shortest form so the file name gets as much of the tab as possible.
+        /// or there is no budget, returns the shortest form so the file name gets as much of the tab
+        /// as possible.
         /// </summary>
         private static string[] AbbreviateToFit(
             string[] folders,
@@ -150,7 +155,7 @@ namespace ShowPathOnTabs.Core.Captioning
             CaptionLayout layout,
             CaptionBudget budget)
         {
-            if (folders.Length == 0 || budget.Fits(Format(folders, fileName, layout)))
+            if (folders.Length == 0 || (budget != null && budget.Fits(Format(folders, fileName, layout))))
                 return folders;
 
             string original = string.Join(JoinSeparator, folders);
@@ -172,7 +177,7 @@ namespace ShowPathOnTabs.Core.Captioning
 
                 best = candidate;
 
-                if (budget.Fits(Format(candidate, fileName, layout)))
+                if (budget != null && budget.Fits(Format(candidate, fileName, layout)))
                     break;
             }
 

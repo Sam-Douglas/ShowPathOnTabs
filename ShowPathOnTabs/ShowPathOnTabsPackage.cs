@@ -27,6 +27,7 @@ namespace ShowPathOnTabs
 
         private CaptionSettings? _captionSettings;
         private TabCaptionService? _tabCaptionService;
+        private TabWidener? _tabWidener;
 
         protected override async Task InitializeAsync(CancellationToken cancellationToken, IProgress<ServiceProgressData> progress)
         {
@@ -48,7 +49,14 @@ namespace ShowPathOnTabs
             _captionSettings = captionSettings;
 
             var budgetProvider = new TabCaptionBudgetProvider(settingsManager);
-            _tabCaptionService = new TabCaptionService(this, () => captionSettings.Current, budgetProvider.Create);
+            var tabWidener = new TabWidener(settingsManager, budgetProvider.CreateMeasurer);
+            _tabWidener = tabWidener;
+
+            _tabCaptionService = new TabCaptionService(
+                this,
+                () => captionSettings.Current,
+                budgetProvider.Create,
+                (options, captions) => tabWidener.Apply(options.WidenTabs, options.TabWidthLimit, captions));
             await _tabCaptionService.InitializeAsync();
 
             captionSettings.Changed += OnCaptionSettingsChanged;
@@ -84,6 +92,7 @@ namespace ShowPathOnTabs
             {
                 _captionSettings?.Dispose();
                 _tabCaptionService?.Dispose();
+                _tabWidener?.Dispose();
             }
 
             base.Dispose(disposing);

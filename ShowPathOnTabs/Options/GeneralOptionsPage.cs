@@ -23,14 +23,18 @@ public class GeneralOptionsPage : DialogPage, ILegacyCaptionStore
     [Category("Tab caption")]
     [DisplayName("Collapse middle folders")]
     [Description("Show only the folder that tells the tabs apart, e.g. Admin\\Index.razor instead of Admin\\Areas\\Pages\\Index.razor.")]
-    [DefaultValue(false)]
-    public bool CollapseMiddle { get; set; }
+    [DefaultValue(true)]
+    public bool CollapseMiddle { get; set; } = true;
 
     [Category("Tab caption")]
-    [DisplayName("Abbreviate folders to fit")]
-    [Description("When a caption is too long for the tab, clip the words in its folder names (EntityFrameworkCore to EntFraCor) only as far as needed to make it fit. The file name is never changed.")]
-    [DefaultValue(false)]
-    public bool AbbreviateFolders { get; set; }
+    [DisplayName("Abbreviate folders")]
+    [Description(
+        "Clip the words in folder names (EntityFrameworkCore to EntFraCor). The file name is never changed.\n" +
+        "Off: folder names are shown in full.\n" +
+        "ToFit: only when the caption is too long for the tab, and only as far as needed.\n" +
+        "Always: always, as short as they can go.")]
+    [DefaultValue(FolderAbbreviation.Off)]
+    public FolderAbbreviation FolderAbbreviation { get; set; } = FolderAbbreviation.Off;
 
     [Category("Tab caption")]
     [DisplayName("Layout")]
@@ -40,6 +44,22 @@ public class GeneralOptionsPage : DialogPage, ILegacyCaptionStore
         "FileNameThenPath: Index.razor (Admin\\Pages).")]
     [DefaultValue(CaptionLayout.PathThenFileName)]
     public CaptionLayout Layout { get; set; } = CaptionLayout.PathThenFileName;
+
+    [Category("Tab caption")]
+    [DisplayName("Widen tabs")]
+    [Description(
+        "Raise Visual Studio's maximum tab width so the widest caption fits.\n" +
+        "Off: the width is left alone. Switching to Off sets it back to Visual Studio's default (215).\n" +
+        "ToFit: as wide as the widest caption needs.\n" +
+        "ToLimit: as wide as the widest caption needs, but no wider than the tab width limit.")]
+    [DefaultValue(TabWidening.ToFit)]
+    public TabWidening TabWidening { get; set; } = TabWidening.ToFit;
+
+    [Category("Tab caption")]
+    [DisplayName("Tab width limit")]
+    [Description("The widest tabs are made when Widen tabs is ToLimit (215 to 999).")]
+    [DefaultValue(CaptionOptions.DefaultTabWidthLimit)]
+    public int TabWidthLimit { get; set; } = CaptionOptions.DefaultTabWidthLimit;
 
     protected override void OnApply(PageApplyEventArgs e)
     {

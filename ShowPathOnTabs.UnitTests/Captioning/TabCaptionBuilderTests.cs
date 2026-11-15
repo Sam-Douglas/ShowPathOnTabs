@@ -45,13 +45,51 @@ public class TabCaptionBuilderTests
             @"C:\Test\Pages\1\Content\Page.razor",
             @"C:\Test\Pages\2\Content\Page.razor"];
 
-        Assert.Equal(@"1\Content\Page.razor", Build(tabPaths.First(), tabPaths));
+        Assert.Equal(@"1\Content\Page.razor", Build(tabPaths.First(), tabPaths, Full));
+    }
+
+    [Fact]
+    public void DefaultOptions_CollapseAndWidenOnly()
+    {
+        var options = CaptionOptions.Default;
+
+        Assert.True(options.CollapseMiddle);
+        Assert.Equal(TabWidening.ToFit, options.WidenTabs);
+        Assert.Equal(FolderAbbreviation.Off, options.AbbreviateFolders);
+        Assert.Equal(CaptionLayout.PathThenFileName, options.Layout);
+        Assert.Equal(CaptionOptions.DefaultTabWidthLimit, options.TabWidthLimit);
+    }
+
+    [Fact]
+    public void With_ChangesOnlyTheGivenSetting()
+    {
+        var options = new CaptionOptions(collapseMiddle: false, FolderAbbreviation.Always, CaptionLayout.FileNameThenPath, TabWidening.ToFit);
+
+        var changed = options.With(widenTabs: TabWidening.ToLimit);
+
+        Assert.Equal(TabWidening.ToLimit, changed.WidenTabs);
+        Assert.False(changed.CollapseMiddle);
+        Assert.Equal(FolderAbbreviation.Always, changed.AbbreviateFolders);
+        Assert.Equal(CaptionOptions.DefaultTabWidthLimit, changed.TabWidthLimit);
+        Assert.Equal(CaptionLayout.FileNameThenPath, changed.Layout);
+    }
+
+    [Fact]
+    public void DefaultOptions_CollapseMiddleFolders()
+    {
+        List<string> tabPaths = [
+            @"C:\Test\Pages\1\Content\Page.razor",
+            @"C:\Test\Pages\2\Content\Page.razor"];
+
+        Assert.Equal(@"1\Page.razor", Build(tabPaths.First(), tabPaths));
     }
 
     private static readonly CaptionOptions Collapsed = new(collapseMiddle: true);
-    private static readonly CaptionOptions FileNameFirst = new(layout: CaptionLayout.FileNameThenPath);
-    private static readonly CaptionOptions Abbreviated = new(abbreviateFolders: true);
-    private static readonly CaptionOptions CollapsedAbbreviated = new(collapseMiddle: true, abbreviateFolders: true);
+    private static readonly CaptionOptions Full = new(collapseMiddle: false);
+    private static readonly CaptionOptions FileNameFirst = new(collapseMiddle: false, layout: CaptionLayout.FileNameThenPath);
+    private static readonly CaptionOptions Abbreviated = new(collapseMiddle: false, FolderAbbreviation.ToFit);
+    private static readonly CaptionOptions CollapsedAbbreviated = new(collapseMiddle: true, FolderAbbreviation.ToFit);
+    private static readonly CaptionOptions AlwaysAbbreviated = new(collapseMiddle: false, FolderAbbreviation.Always);
 
     // One unit per character keeps the expected captions easy to count.
     private static CaptionBudget Budget(int characters) => new(characters, caption => caption.Length);
@@ -192,7 +230,7 @@ public class TabCaptionBuilderTests
     [Fact]
     public void AbbreviateFolders_FileNameFirst_AbbreviatesFolderInBrackets()
     {
-        var options = new CaptionOptions(collapseMiddle: true, abbreviateFolders: true, CaptionLayout.FileNameThenPath);
+        var options = new CaptionOptions(collapseMiddle: true, FolderAbbreviation.ToFit, CaptionLayout.FileNameThenPath);
 
         Assert.Equal(
             "ServiceCollectionExtensions.cs (AzuSerBus)",
@@ -221,6 +259,35 @@ public class TabCaptionBuilderTests
     }
 
     [Fact]
+    public void AbbreviateAlways_ShortensFoldersEvenWithoutABudget()
+    {
+        Assert.Equal(
+            @"AzuSerBus\Con\ServiceCollectionExtensions.cs",
+            Build(ServiceTabs[0], ServiceTabs, AlwaysAbbreviated));
+    }
+
+    [Fact]
+    public void AbbreviateAlways_IgnoresARoomyBudget()
+    {
+        Assert.Equal(
+            @"Red\Con\ServiceCollectionExtensions.cs",
+            Build(ServiceTabs[1], ServiceTabs, AlwaysAbbreviated, Budget(500)));
+    }
+
+    [Fact]
+    public void AbbreviateAlways_StopsBeforeFolderMatchesASiblingsFolder()
+    {
+        List<string> tabPaths = [
+            @"C:\Test\AzureService\Configuration\Setup.cs",
+            @"C:\Test\AzureServer\Configuration\Setup.cs"];
+        var options = new CaptionOptions(collapseMiddle: true, FolderAbbreviation.Always);
+
+        var captions = tabPaths.Select(path => Build(path, tabPaths, options)).ToList();
+
+        Assert.Equal([@"AzureServi\Setup.cs", @"AzureServe\Setup.cs"], captions);
+    }
+
+    [Fact]
     public void AbbreviateFolders_UniqueFilename_ReturnsFilename()
     {
         List<string> tabPaths = [@"C:\Test\Pages\AVeryLongUniquePageName.razor"];
@@ -231,7 +298,7 @@ public class TabCaptionBuilderTests
     [Fact]
     public void Captions_NeverContainAnEllipsis()
     {
-        foreach (var options in new[] { Collapsed, Abbreviated, CollapsedAbbreviated })
+        foreach (var options in new[] { Collapsed, Abbreviated, CollapsedAbbreviated, AlwaysAbbreviated })
         {
             Assert.DoesNotContain("…", Build(ServiceTabs[0], ServiceTabs, options, Budget(10)));
             Assert.DoesNotContain("...", Build(ServiceTabs[0], ServiceTabs, options, Budget(10)));

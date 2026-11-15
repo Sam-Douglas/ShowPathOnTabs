@@ -37,11 +37,25 @@ internal sealed class TabCaptionBudgetProvider(ISettingsManager? settingsManager
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
+        double textWidth = TextWidthFor(ReadMaximumTabWidth());
+        if (textWidth <= 0) return null;
+
+        var measure = CreateMeasurer();
+        return measure == null ? null : new CaptionBudget(textWidth, measure);
+    }
+
+    /// <summary>Visual Studio's current "maximum tab width" setting.</summary>
+    public int ReadMaximumTabWidth() => ReadSetting(MaximumTabWidthMoniker, DefaultMaximumTabWidth);
+
+    /// <summary>
+    /// Returns a function that measures caption text the way a tab draws it, or null when it cannot.
+    /// </summary>
+    public Func<string, double>? CreateMeasurer()
+    {
+        ThreadHelper.ThrowIfNotOnUIThread();
+
         try
         {
-            double textWidth = TextWidthFor(ReadSetting(MaximumTabWidthMoniker, DefaultMaximumTabWidth));
-            if (textWidth <= 0) return null;
-
             // The selected tab is drawn in bold, which is wider, and any tab can become the selected one.
             var weight = ReadSetting(BoldSelectedTabsMoniker, true) ? FontWeights.Bold : FontWeights.Normal;
 
@@ -54,7 +68,7 @@ internal sealed class TabCaptionBudgetProvider(ISettingsManager? settingsManager
             var mainWindow = Application.Current?.MainWindow;
             double pixelsPerDip = mainWindow != null ? VisualTreeHelper.GetDpi(mainWindow).PixelsPerDip : 1.0;
 
-            return new CaptionBudget(textWidth, caption => new FormattedText(
+            return caption => new FormattedText(
                 caption,
                 CultureInfo.CurrentUICulture,
                 FlowDirection.LeftToRight,
@@ -63,7 +77,7 @@ internal sealed class TabCaptionBudgetProvider(ISettingsManager? settingsManager
                 Brushes.Black,
                 null,
                 TextFormattingMode.Display,
-                pixelsPerDip).WidthIncludingTrailingWhitespace);
+                pixelsPerDip).WidthIncludingTrailingWhitespace;
         }
         catch (Exception ex)
         {
@@ -74,6 +88,9 @@ internal sealed class TabCaptionBudgetProvider(ISettingsManager? settingsManager
 
     /// <summary>The width left for caption text on a tab of the given maximum width.</summary>
     internal static double TextWidthFor(int maximumTabWidth) => maximumTabWidth - TabChromeWidth;
+
+    /// <summary>The maximum tab width needed to show caption text of the given width.</summary>
+    internal static int TabWidthFor(double textWidth) => (int)Math.Ceiling(textWidth + TabChromeWidth);
 
     private T ReadSetting<T>(string moniker, T fallback) where T : notnull
     {

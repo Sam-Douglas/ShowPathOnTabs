@@ -19,10 +19,12 @@ namespace ShowPathOnTabs.Services;
 /// <param name="serviceProvider">Provides the running document table and UI shell (normally the package).</param>
 /// <param name="captionOptions">Returns the current caption settings. Read on every refresh so changes apply straight away.</param>
 /// <param name="captionBudget">Returns the room available on a tab, for folder names that are abbreviated to fit. Null when it cannot be measured.</param>
+/// <param name="captionsApplied">Called with the options and every caption after the captions are set.</param>
 internal sealed class TabCaptionService(
     IAsyncServiceProvider serviceProvider,
     Func<CaptionOptions>? captionOptions = null,
-    Func<CaptionBudget?>? captionBudget = null) : IVsRunningDocTableEvents2, IDisposable
+    Func<CaptionBudget?>? captionBudget = null,
+    Action<CaptionOptions, IReadOnlyList<string>>? captionsApplied = null) : IVsRunningDocTableEvents2, IDisposable
 {
     // Attributes whose change means a tab may now show a different file: path changed, file reloaded.
     private const uint RenameAttributes = (uint)(__VSRDTATTRIB.RDTA_MkDocument | __VSRDTATTRIB.RDTA_DocDataReloaded);
@@ -171,17 +173,26 @@ internal sealed class TabCaptionService(
         try
         {
             var openDocs = GetOpenDocuments();
-            if (openDocs.Count == 0) return;
+            if (openDocs.Count == 0)
+            {
+                // Still reported, so a tab width raised for captions that are now closed is put back.
+                captionsApplied?.Invoke(_captionOptions(), []);
+                return;
+            }
 
             var allOpenPaths = openDocs.Select(d => d.FilePath).ToList();
             var options = _captionOptions();
-            var budget = options.AbbreviateFolders ? _captionBudget() : null;
+            var budget = options.AbbreviateFolders == FolderAbbreviation.ToFit ? _captionBudget() : null;
 
+            var captions = new List<string>(openDocs.Count);
             foreach (var (filePath, frame) in openDocs)
             {
                 string caption = TabCaptionBuilder.Build(filePath, allOpenPaths, options, budget);
                 frame.SetProperty((int)__VSFPROPID.VSFPROPID_OwnerCaption, caption);
+                captions.Add(caption);
             }
+
+            captionsApplied?.Invoke(options, captions);
         }
         catch (Exception ex)
         {

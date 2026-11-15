@@ -12,7 +12,8 @@ public sealed class CaptionCommandsTests
 {
     private sealed class FakeCaptionSettings : ICaptionSettings
     {
-        public CaptionOptions Current { get; private set; } = CaptionOptions.Default;
+        // Start with every toggle off so each test sees a clear off-to-on change.
+        public CaptionOptions Current { get; private set; } = new(collapseMiddle: false, FolderAbbreviation.Off, widenTabs: TabWidening.Off);
 
         public event EventHandler? Changed;
 
@@ -47,16 +48,28 @@ public sealed class CaptionCommandsTests
     }
 
     [Fact]
-    public async Task ToggleAbbreviateFolders_SwitchesOnAndOff()
+    public async Task SetFolderAbbreviation_ChangesOnlyThatSetting()
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
         var commands = CreateCommands();
 
-        commands.ToggleAbbreviateFolders();
-        Assert.True(commands.IsAbbreviateFoldersOn);
+        commands.SetFolderAbbreviation(FolderAbbreviation.Always);
 
-        commands.ToggleAbbreviateFolders();
-        Assert.False(commands.IsAbbreviateFoldersOn);
+        Assert.Equal(FolderAbbreviation.Always, _settings.Current.AbbreviateFolders);
+        Assert.Equal(TabWidening.Off, _settings.Current.WidenTabs);
+        Assert.False(commands.IsCollapseMiddleOn);
+    }
+
+    [Fact]
+    public async Task SetTabWidening_ChangesOnlyThatSetting()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        var commands = CreateCommands();
+
+        commands.SetTabWidening(TabWidening.ToLimit);
+
+        Assert.Equal(TabWidening.ToLimit, _settings.Current.WidenTabs);
+        Assert.Equal(FolderAbbreviation.Off, _settings.Current.AbbreviateFolders);
     }
 
     [Fact]
@@ -66,17 +79,17 @@ public sealed class CaptionCommandsTests
         var commands = CreateCommands();
 
         commands.ToggleCollapseMiddle();
-        commands.ToggleAbbreviateFolders();
+        commands.SetFolderAbbreviation(FolderAbbreviation.ToFit);
         commands.ToggleFileNameFirst();
 
         Assert.True(commands.IsCollapseMiddleOn);
-        Assert.True(commands.IsAbbreviateFoldersOn);
+        Assert.Equal(FolderAbbreviation.ToFit, _settings.Current.AbbreviateFolders);
         Assert.True(commands.IsFileNameFirstOn);
 
         commands.ToggleFileNameFirst();
 
         Assert.True(commands.IsCollapseMiddleOn);
-        Assert.True(commands.IsAbbreviateFoldersOn);
+        Assert.Equal(FolderAbbreviation.ToFit, _settings.Current.AbbreviateFolders);
         Assert.False(commands.IsFileNameFirstOn);
     }
 
@@ -88,22 +101,64 @@ public sealed class CaptionCommandsTests
         CreateCommands().Register(commandService);
         OleMenuCommand Find(int id) => (OleMenuCommand)commandService.FindCommand(new CommandID(CaptionCommands.CommandSet, id))!;
         var collapse = Find(CaptionCommands.CollapseMiddleCommandId);
-        var fit = Find(CaptionCommands.AbbreviateFoldersCommandId);
         var fileNameFirst = Find(CaptionCommands.FileNameFirstCommandId);
         var settings = commandService.FindCommand(new CommandID(CaptionCommands.CommandSet, CaptionCommands.OpenSettingsCommandId))!;
 
         collapse.Invoke();
-        fit.Invoke();
         settings.Invoke();
 
         // Visual Studio asks for the status each time the menu opens.
         _ = collapse.OleStatus;
-        _ = fit.OleStatus;
         _ = fileNameFirst.OleStatus;
 
         Assert.True(collapse.Checked);
-        Assert.True(fit.Checked);
         Assert.False(fileNameFirst.Checked);
         Assert.Equal(1, _settingsOpened);
     }
+
+    [Theory]
+    [InlineData(CaptionCommands.AbbreviateOffCommandId, FolderAbbreviation.Off)]
+    [InlineData(CaptionCommands.AbbreviateToFitCommandId, FolderAbbreviation.ToFit)]
+    [InlineData(CaptionCommands.AbbreviateAlwaysCommandId, FolderAbbreviation.Always)]
+    public async Task AbbreviateSubmenu_SelectsAndTicksOneChoice(int commandId, FolderAbbreviation expected)
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        _settings.Update(_settings.Current.With(abbreviateFolders: FolderAbbreviation.ToFit));
+        var commandService = new MenuCommandService(new ServiceContainer());
+        CreateCommands().Register(commandService);
+        int[] choices = [CaptionCommands.AbbreviateOffCommandId, CaptionCommands.AbbreviateToFitCommandId, CaptionCommands.AbbreviateAlwaysCommandId];
+
+        ((OleMenuCommand)commandService.FindCommand(new CommandID(CaptionCommands.CommandSet, commandId))!).Invoke();
+
+        Assert.Equal(expected, _settings.Current.AbbreviateFolders);
+        Assert.Equal([commandId], TickedCommands(commandService, choices));
+    }
+
+    [Theory]
+    [InlineData(CaptionCommands.WidenOffCommandId, TabWidening.Off)]
+    [InlineData(CaptionCommands.WidenToFitCommandId, TabWidening.ToFit)]
+    [InlineData(CaptionCommands.WidenToLimitCommandId, TabWidening.ToLimit)]
+    public async Task WidenSubmenu_SelectsAndTicksOneChoice(int commandId, TabWidening expected)
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        _settings.Update(_settings.Current.With(widenTabs: TabWidening.ToFit));
+        var commandService = new MenuCommandService(new ServiceContainer());
+        CreateCommands().Register(commandService);
+        int[] choices = [CaptionCommands.WidenOffCommandId, CaptionCommands.WidenToFitCommandId, CaptionCommands.WidenToLimitCommandId];
+
+        ((OleMenuCommand)commandService.FindCommand(new CommandID(CaptionCommands.CommandSet, commandId))!).Invoke();
+
+        Assert.Equal(expected, _settings.Current.WidenTabs);
+        Assert.Equal([commandId], TickedCommands(commandService, choices));
+    }
+
+    private static int[] TickedCommands(MenuCommandService commandService, int[] commandIds) =>
+        commandIds
+            .Where(id =>
+            {
+                var command = (OleMenuCommand)commandService.FindCommand(new CommandID(CaptionCommands.CommandSet, id))!;
+                _ = command.OleStatus; // Visual Studio asks for the status each time the menu opens.
+                return command.Checked;
+            })
+            .ToArray();
 }

@@ -6,12 +6,24 @@
 
   <Commands package="guidShowPathOnTabsPackage">
 
-    <!-- Extensions > Show Path On Tabs -->
+    <!-- Extensions > Show Path On Tabs, with Abbreviate Folders and Widen Tabs submenus -->
     <Menus>
       <Menu guid="guidShowPathOnTabsCmdSet" id="ExtensionsSubMenu" priority="0x0100" type="Menu">
         <Parent guid="guidSHLMainMenu" id="IDG_VS_MM_TOOLSADDINS" />
         <Strings>
           <ButtonText>Show Path On Tabs</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidShowPathOnTabsCmdSet" id="AbbreviateSubMenu" priority="0x0300" type="Menu">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" />
+        <Strings>
+          <ButtonText>Abbreviate Folders</ButtonText>
+        </Strings>
+      </Menu>
+      <Menu guid="guidShowPathOnTabsCmdSet" id="WidenSubMenu" priority="0x0350" type="Menu">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" />
+        <Strings>
+          <ButtonText>Widen Tabs</ButtonText>
         </Strings>
       </Menu>
     </Menus>
@@ -23,6 +35,12 @@
       <Group guid="guidShowPathOnTabsCmdSet" id="SettingsGroup" priority="0x0200">
         <Parent guid="guidShowPathOnTabsCmdSet" id="ExtensionsSubMenu" />
       </Group>
+      <Group guid="guidShowPathOnTabsCmdSet" id="AbbreviateGroup" priority="0x0100">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="AbbreviateSubMenu" />
+      </Group>
+      <Group guid="guidShowPathOnTabsCmdSet" id="WidenGroup" priority="0x0100">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="WidenSubMenu" />
+      </Group>
     </Groups>
 
     <Buttons>
@@ -33,18 +51,51 @@
           <ButtonText>Collapse Middle Folders</ButtonText>
         </Strings>
       </Button>
-      <Button guid="guidShowPathOnTabsCmdSet" id="AbbreviateFoldersCommand" priority="0x0300" type="Button">
-        <Parent guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" />
-        <Strings>
-          <ButtonText>Abbreviate Folders to Fit</ButtonText>
-        </Strings>
-      </Button>
       <Button guid="guidShowPathOnTabsCmdSet" id="FileNameFirstCommand" priority="0x0400" type="Button">
         <Parent guid="guidShowPathOnTabsCmdSet" id="CaptionGroup" />
         <Strings>
           <ButtonText>File Name First</ButtonText>
         </Strings>
       </Button>
+
+      <!-- One choice in each submenu is ticked. -->
+      <Button guid="guidShowPathOnTabsCmdSet" id="AbbreviateOffCommand" priority="0x0100" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="AbbreviateGroup" />
+        <Strings>
+          <ButtonText>Off</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidShowPathOnTabsCmdSet" id="AbbreviateToFitCommand" priority="0x0200" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="AbbreviateGroup" />
+        <Strings>
+          <ButtonText>To Fit</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidShowPathOnTabsCmdSet" id="AbbreviateAlwaysCommand" priority="0x0300" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="AbbreviateGroup" />
+        <Strings>
+          <ButtonText>Always</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidShowPathOnTabsCmdSet" id="WidenOffCommand" priority="0x0100" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="WidenGroup" />
+        <Strings>
+          <ButtonText>Off</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidShowPathOnTabsCmdSet" id="WidenToFitCommand" priority="0x0200" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="WidenGroup" />
+        <Strings>
+          <ButtonText>To Fit</ButtonText>
+        </Strings>
+      </Button>
+      <Button guid="guidShowPathOnTabsCmdSet" id="WidenToLimitCommand" priority="0x0300" type="Button">
+        <Parent guid="guidShowPathOnTabsCmdSet" id="WidenGroup" />
+        <Strings>
+          <ButtonText>To Limit</ButtonText>
+        </Strings>
+      </Button>
+
       <Button guid="guidShowPathOnTabsCmdSet" id="OpenSettingsCommand" priority="0x0100" type="Button">
         <Parent guid="guidShowPathOnTabsCmdSet" id="SettingsGroup" />
         <Strings>
@@ -59,12 +110,21 @@
 
     <GuidSymbol name="guidShowPathOnTabsCmdSet" value="{3b1c7d0e-9f5a-4c58-8e2b-6a4d2f7c9e10}">
       <IDSymbol name="ExtensionsSubMenu" value="0x1000" />
+      <IDSymbol name="AbbreviateSubMenu" value="0x1001" />
+      <IDSymbol name="WidenSubMenu" value="0x1002" />
       <IDSymbol name="CaptionGroup" value="0x1100" />
       <IDSymbol name="SettingsGroup" value="0x1200" />
+      <IDSymbol name="AbbreviateGroup" value="0x1300" />
+      <IDSymbol name="WidenGroup" value="0x1400" />
       <IDSymbol name="CollapseMiddleCommand" value="0x0100" />
       <IDSymbol name="FileNameFirstCommand" value="0x0101" />
       <IDSymbol name="OpenSettingsCommand" value="0x0102" />
-      <IDSymbol name="AbbreviateFoldersCommand" value="0x0104" />
+      <IDSymbol name="AbbreviateOffCommand" value="0x0110" />
+      <IDSymbol name="AbbreviateToFitCommand" value="0x0111" />
+      <IDSymbol name="AbbreviateAlwaysCommand" value="0x0112" />
+      <IDSymbol name="WidenOffCommand" value="0x0120" />
+      <IDSymbol name="WidenToFitCommand" value="0x0121" />
+      <IDSymbol name="WidenToLimitCommand" value="0x0122" />
     </GuidSymbol>
   </Symbols>
 </CommandTable>
