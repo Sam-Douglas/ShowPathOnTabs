@@ -205,6 +205,50 @@ public sealed class TabWidenerTests
     }
 
     [Fact]
+    public async Task WidthChangedElsewhere_IsLeftAloneUntilTheCaptionsChange()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        using var widener = CreateWidener();
+        widener.Apply(TabWidening.ToLimit, Limit, [CaptionNeeding(300)]);
+
+        // Another window (or the user) sets the width; refreshing with the same captions keeps it.
+        _currentWidth = 250;
+        widener.Apply(TabWidening.ToLimit, Limit, [CaptionNeeding(300)]);
+        Assert.Equal([300], _writes);
+
+        widener.Apply(TabWidening.ToLimit, Limit, [CaptionNeeding(350)]);
+        Assert.Equal([300, 350], _writes);
+    }
+
+    [Fact]
+    public async Task TwoWindowsWantingDifferentWidths_DoNotKeepOverwritingEachOther()
+    {
+        await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
+        using var longTabs = CreateWidener();
+        using var shortTabs = CreateWidener();
+
+        // Every write refreshes both windows, as Visual Studio's settings change notification does.
+        for (int refresh = 0; refresh < 10; refresh++)
+        {
+            longTabs.Apply(TabWidening.ToLimit, Limit, [CaptionNeeding(300)]);
+            shortTabs.Apply(TabWidening.ToLimit, Limit, ["Short.cs"]);
+        }
+
+        Assert.Equal([300, TabWidener.RestoredTabWidth], _writes);
+    }
+
+    [Theory]
+    [InlineData(TabWidening.Off, 400, null)]
+    [InlineData(TabWidening.ToFit, 400, TabWidener.VsMaximumTabWidth)]
+    [InlineData(TabWidening.ToLimit, 400, 400)]
+    [InlineData(TabWidening.ToLimit, 100, TabWidener.RestoredTabWidth)]
+    [InlineData(TabWidening.ToLimit, 5000, TabWidener.VsMaximumTabWidth)]
+    public void WidestTab_FollowsTheMode(TabWidening mode, int limit, int? expected)
+    {
+        Assert.Equal(expected, TabWidener.WidestTab(mode, limit));
+    }
+
+    [Fact]
     public async Task WithoutSettingsManager_DoesNothing()
     {
         await ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();

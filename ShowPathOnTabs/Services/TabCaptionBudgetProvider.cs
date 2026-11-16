@@ -33,11 +33,14 @@ internal sealed class TabCaptionBudgetProvider(ISettingsManager? settingsManager
     /// </summary>
     internal const double TabChromeWidth = 96;
 
-    public CaptionBudget? Create()
+    /// <param name="maximumTabWidth">
+    /// The tab width to fit captions into, or null to use Visual Studio's current setting.
+    /// </param>
+    public CaptionBudget? Create(int? maximumTabWidth = null)
     {
         ThreadHelper.ThrowIfNotOnUIThread();
 
-        double textWidth = TextWidthFor(ReadMaximumTabWidth());
+        double textWidth = TextWidthFor(maximumTabWidth ?? ReadMaximumTabWidth());
         if (textWidth <= 0) return null;
 
         var measure = CreateMeasurer();

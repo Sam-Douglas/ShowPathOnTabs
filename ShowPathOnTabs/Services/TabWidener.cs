@@ -12,8 +12,13 @@ namespace ShowPathOnTabs.Services;
 /// While switched on, sets Visual Studio's maximum tab width to what the widest caption needs, never
 /// below <see cref="RestoredTabWidth"/>. <see cref="TabWidening.ToFit"/> goes as wide as Visual Studio
 /// allows; <see cref="TabWidening.ToLimit"/> stops at the user's limit. When switched off, sets it back
-/// to <see cref="RestoredTabWidth"/> once. The user's own width is not remembered: while this is
-/// on, the extension owns the setting.
+/// to <see cref="RestoredTabWidth"/> once. The user's own width is not remembered.
+/// <para>
+/// The width is written only when the width this extension wants changes, never just because the
+/// setting changed. The setting is shared by every Visual Studio window, so two windows wanting
+/// different widths (or anything else that sets it) would otherwise overwrite each other in a loop
+/// and make the tabs flicker.
+/// </para>
 /// </summary>
 /// <param name="settingsManager">Used to read and write Visual Studio's tab width. May be null.</param>
 /// <param name="createMeasurer">Returns a function that measures caption text, or null when it cannot.</param>
@@ -35,6 +40,9 @@ internal sealed class TabWidener(
     // and a width the user sets while it is off is left alone.
     private bool _wasOn;
 
+    // The width last asked for, so it is written only when that changes.
+    private int? _lastTarget;
+
     /// <summary>Called after the tab captions have been set.</summary>
     /// <param name="limit">The widest a tab may be made under <see cref="TabWidening.ToLimit"/>.</param>
     public void Apply(TabWidening mode, int limit, IReadOnlyList<string> captions)
@@ -46,14 +54,17 @@ internal sealed class TabWidener(
             if (mode != TabWidening.Off)
             {
                 _wasOn = true;
-                int widest = mode == TabWidening.ToLimit
-                    ? Math.Max(RestoredTabWidth, Math.Min(limit, VsMaximumTabWidth))
-                    : VsMaximumTabWidth;
-                SetWidth(WidthFor(captions, widest));
+                int target = WidthFor(captions, WidestTab(mode, limit) ?? VsMaximumTabWidth);
+                if (target != _lastTarget)
+                {
+                    _lastTarget = target;
+                    SetWidth(target);
+                }
             }
             else if (_wasOn)
             {
                 _wasOn = false;
+                _lastTarget = null;
                 SetWidth(RestoredTabWidth);
             }
         }
@@ -62,6 +73,17 @@ internal sealed class TabWidener(
             Debug.WriteLine($"ShowPathOnTabs: could not set the tab width: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// The widest a tab can be made in the given mode, or null when widening is off and the width is
+    /// left to Visual Studio.
+    /// </summary>
+    internal static int? WidestTab(TabWidening mode, int limit) => mode switch
+    {
+        TabWidening.ToFit => VsMaximumTabWidth,
+        TabWidening.ToLimit => Math.Max(RestoredTabWidth, Math.Min(limit, VsMaximumTabWidth)),
+        _ => null,
+    };
 
     private int WidthFor(IReadOnlyList<string> captions, int widest)
     {
