@@ -53,10 +53,17 @@ namespace ShowPathOnTabs
             var tabWidener = new TabWidener(settingsManager, budgetProvider.CreateMeasurer);
             _tabWidener = tabWidener;
 
+            // While widening is on, captions are fitted to the widest the tab can be made rather than
+            // to the current width, which the widener itself changes; otherwise each would keep
+            // changing the other.
             _tabCaptionService = new TabCaptionService(
                 this,
                 () => captionSettings.Current,
-                budgetProvider.Create,
+                () =>
+                {
+                    var options = captionSettings.Current;
+                    return budgetProvider.Create(TabWidener.WidestTab(options.WidenTabs, options.TabWidthLimit));
+                },
                 (options, captions) => tabWidener.Apply(options.Enabled ? options.WidenTabs : TabWidening.Off, options.TabWidthLimit, captions));
             await _tabCaptionService.InitializeAsync();
 
