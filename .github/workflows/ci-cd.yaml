@@ -103,7 +103,7 @@ jobs:
           vsix-file: ShowPathOnTabs.vsix
 
       - name: Publish to Visual Studio Marketplace
-        uses: cezarypiatek/VsixPublisherAction@1.0
+        uses: madskristensen/publish-marketplace@v2
         with:
           extension-file: ShowPathOnTabs.vsix
           publish-manifest-file: vs-publish.json
