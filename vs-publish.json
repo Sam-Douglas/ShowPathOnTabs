@@ -1,9 +1,9 @@
 {
   "$schema": "http://json.schemastore.org/vsix-publish",
-  "categories": [ "other" ],
+  "categories": [ "coding", "other" ],
   "identity": {
     "internalName": "ShowPathOnTabs",
-    "tags": [ "tabs", "tab caption", "disambiguate" ]
+    "tags": [ "tabs", "tab", "document tabs", "tab title", "tab caption", "file path", "path", "duplicate file names", "same file name", "disambiguate", "tab width", "productivity" ]
   },
   "assetFiles": [
     { "pathOnDisk": "Images/ExtensionDisabled.png", "targetPath": "Images/ExtensionDisabled.png" },

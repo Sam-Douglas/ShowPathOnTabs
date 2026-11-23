@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PackageManifest Version="2.0.0" xmlns="http://schemas.microsoft.com/developer/vsx-schema/2011" xmlns:d="http://schemas.microsoft.com/developer/vsx-schema-design/2011">
   <Metadata>
-    <Identity Id="ShowPathOnTabs.c758877c-693e-4299-88e4-4e481e7bdc20" Version="0.2" Language="en-GB" Publisher="Sam Douglas" />
+    <Identity Id="ShowPathOnTabs.c758877c-693e-4299-88e4-4e481e7bdc20" Version="1.0" Language="en-GB" Publisher="Sam Douglas" />
     <DisplayName>Show Path On Tabs</DisplayName>
-    <Description>Displays the minimum required file path on tab captions so you can quickly identify files when multiple with the same name are open.</Description>
+    <Description>When several open tabs share a file name, Show Path On Tabs adds just enough of the folder path to tell them apart.</Description>
     <License>Resources\LICENSE.txt</License>
     <Icon>Resources\Icon.png</Icon>
-    <Tags>Show Path On Tabs;Tabs;Tab;Tab Caption;Disambiguate</Tags>
-    <Preview>true</Preview>
+    <Tags>Tabs;Tab;Document Tabs;Tab Title;Tab Caption;File Path;Path;Duplicate File Names;Same File Name;Disambiguate;Tab Width;Productivity</Tags>
   </Metadata>
   <Installation>
     <InstallationTarget Id="Microsoft.VisualStudio.Community" Version="[17.14, )">
